@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>McQueffa – YARDMAN</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#140a28">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&display=swap" rel="stylesheet">
+  <style>
+    :root { --gold:#ffd350; --ink:#0f0a19; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+
+    html, body { height:100%; overflow:auto; }
+    body{
+      font-family:'Montserrat',Arial,sans-serif; color:#fff;
+      background:url('mcqueffa-background.png') center/cover no-repeat fixed;
+      min-height:100vh; position:relative;
+      padding-bottom:92px; /* space for fixed footer */
+    }
+
+    /* Background layers (stronger blur via backdrop-filter) */
+    .blur-bg{
+      position:fixed; inset:0; background:inherit;
+      filter:blur(14px) brightness(.7) saturate(1.2);
+      z-index:0; pointer-events:none;
+    }
+    .color-overlay{
+      position:fixed; inset:0; background:rgba(20,10,40,.55);
+      backdrop-filter: blur(16px) saturate(1.15) brightness(.95);
+      z-index:1; pointer-events:none;
+    }
+
+    /* Side rails (desktop) */
+    .left-rail, .right-rail{
+      position:fixed; top:16px; width:280px; z-index:3;
+      display:flex; flex-direction:column; gap:12px;
+    }
+    .left-rail{ left:16px; }
+    .right-rail{ right:16px; }
+
+    .frame{
+      background:rgba(0,0,0,.38);
+      border:1px solid #ffffff26;
+      border-radius:16px;
+      box-shadow:0 12px 30px #0008;
+      backdrop-filter: blur(6px) saturate(1.1);
+      overflow:hidden;
+    }
+    .frame-head{
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      padding:8px 10px; border-bottom:1px solid #ffffff14; background:rgba(63,20,89,.35);
+    }
+    .frame-title{ color:var(--gold); font-weight:800; letter-spacing:.3px; font-size:.95rem; }
+    .frame-body{ padding:8px; }
+
+    /* (Your video class kept) */
+    .odoo-video, .odoo.video{ width:100%; height:140px; background:#000; display:block; border:0; object-fit:cover; }
+
+    .now-playing .frame-body{ padding:8px; }
+    .np-meta{ padding:8px 10px 0 10px; }
+    .np-title{ font-weight:800; font-size:.98rem; }
+    .np-sub{ opacity:.85; font-size:.9rem; }
+
+    /* Center container */
+    .container{
+      position:relative; z-index:2; max-width:1100px;
+      margin:0 auto; padding:18px 18px 0;
+      min-height:100vh; display:flex; flex-direction:column; align-items:center;
+    }
+    header{text-align:center; margin:6px 0 6px;}
+    header img{width:110px; height:110px; border-radius:18px; box-shadow:0 6px 32px #222a; margin-bottom:8px; object-fit:cover;}
+    h1{font-size:2.2em; letter-spacing:2px;}
+
+    .hero-slider{ margin:8px auto 12px; max-width:920px; text-align:center; position:relative; min-height:1.6em; }
+    .hero-slide{position:absolute; inset:0; font-weight:800; letter-spacing:.5px; color:var(--gold); opacity:0; transform:translateY(6px); transition:opacity .6s, transform .6s;}
+    .hero-slide.active{opacity:1; transform:none; position:relative;}
+
+    /* Nav + added EPK button (doesn't change tabs) */
+    nav{margin:12px auto 18px; display:flex; flex-wrap:wrap; gap:10px; justify-content:center;}
+    nav button{
+      background:rgba(0,0,0,.28); color:#fff; border:1px solid #ffffff22; font-size:1.02em; padding:9px 16px; border-radius:14px;
+      cursor:pointer; font-weight:700; letter-spacing:1px;
+    }
+    nav button.active,nav button:hover{background:#3f1459; color:var(--gold); border-color:#ffd35055;}
+    nav button[data-tab="coming-soon"]{ display:none !important; }
+    .epk-open{ background:#3f1459; border-color:#ffd35044; }
+
+    /* Sections */
+    .sections{ width:100%; max-width:980px; display:flex; justify-content:center; }
+    .sections-inner{ width:100%; }
+    section{display:none; animation:fade .6s;}
+    section.active{display:block;}
+    @keyframes fade{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:none;}}
+
+    /* Bio */
+    #bio p{max-width:70ch; margin:0 auto 10px; line-height:1.55; text-align:center; color:#f7f3ff; font-size:1rem;}
+
+    /* Catalogue */
+    .catalogue-list{display:flex; flex-wrap:wrap; gap:18px; justify-content:center;}
+    .catalogue-album{
+      background:rgba(0,0,0,.46); border-radius:18px; padding:13px 10px 12px; width:210px; text-align:center;
+      box-shadow:0 4px 14px #0006;
+    }
+    .thumb-link{display:inline-block;}
+    .album-art{width:160px; height:160px; object-fit:cover; border-radius:12px; margin-bottom:8px;}
+    .album-title{font-weight:800; margin-bottom:6px;}
+    .streaming-logos{display:flex; justify-content:center; gap:10px; flex-wrap:wrap;}
+    .streaming-logos img{width:26px; height:26px;}
+
+    /* Merch */
+    #merch h2, #q-dsps h2{ text-align:center; color:var(--gold); margin-bottom:12px; }
+    .merch-wrap{display:flex; flex-wrap:wrap; gap:18px; justify-content:center;}
+    .hoodie{
+      width:200px; height:240px; border-radius:18px; display:flex; align-items:center; justify-content:center;
+      position:relative; box-shadow:0 6px 18px #0006; overflow:hidden; transition:transform .15s ease-in-out; cursor:pointer;
+      background:#111;
+    }
+    .hoodie.white{background:#eee;}
+    .hoodie img{width:80%; border-radius:10px;}
+    .hoodie:hover{ transform: translateY(-2px); }
+    .hoodie-label{color:var(--gold); font-weight:800; text-align:center; margin-top:6px;}
+
+    /* Generic modal (used by merch + EPK) */
+    .modal{position:fixed; inset:0; background:rgba(0,0,0,.75); display:none; align-items:center; justify-content:center; z-index:1000;}
+    .modal.open{display:flex;}
+    .modal-card{background:var(--ink); border:1px solid #ffffff22; border-radius:16px; padding:14px; max-width:94vw; max-height:90vh; box-shadow:0 10px 30px #000; display:flex; flex-direction:column; gap:10px;}
+    .modal-head{display:flex; align-items:center; justify-content:space-between; gap:10px;}
+    .modal-title{color:var(--gold); font-weight:800;}
+    .modal-close{background:#3f1459; color:#fff; border:none; border-radius:10px; padding:8px 12px; cursor:pointer; font-weight:800;}
+
+    /* Merch modal images */
+    .modal-images{display:flex; gap:10px; flex-wrap:wrap; justify-content:center;}
+    .modal-images img{max-width:44vw; max-height:70vh; border-radius:12px; object-fit:contain; background:#000;}
+
+    /* EPK modal */
+    .pdf-frame{
+      width:90vw; height:80vh; border:0; border-radius:12px; background:#111;
+    }
+    .pdf-fallback{ text-align:center; color:#fff; }
+    .pdf-fallback a{ color:var(--gold); font-weight:800; }
+
+    /* Footer */
+    footer{
+      position:fixed; left:0; right:0; bottom:0; z-index:5; padding:10px 18px 14px;
+      background:linear-gradient(to top, rgba(10,5,20,.85), rgba(10,5,20,.0));
+      backdrop-filter: blur(4px);
+    }
+    footer a{color:var(--gold); text-decoration:none; font-weight:800;}
+    footer a:hover{text-decoration:underline;}
+
+    /* DSP grid 3x3 */
+    #q-dsps .dsp-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      justify-items: center;
+    }
+    #q-dsps .album-art { width: 60px; height: 60px; }
+
+    /* Mobile improvements */
+    @media (max-width:900px){
+      .left-rail, .right-rail{ position:static; width:100%; }
+      .container{ padding-top:8px; }
+      iframe{ width:100% !important; height:auto !important; aspect-ratio:16/9; border-radius:12px; }
+      .catalogue-album, .hoodie{ width:46%; height:auto; }
+      .album-art{ width:100%; height:auto; }
+    }
+    @media (max-width:520px){
+      .catalogue-album, .hoodie{ width:100%; }
+      nav{ flex-direction:column; align-items:center; }
+      .pdf-frame{ width:96vw; height:78vh; }
+    }
+  </style>
+</head>
+<body>
+  <div class="blur-bg" aria-hidden="true"></div>
+  <div class="color-overlay" aria-hidden="true"></div>
+
+  <!-- LEFT: Trap Life video -->
+  <aside class="left-rail">
+    <div class="frame">
+      <div class="frame-head">
+        <div class="frame-title">Trap Life</div>
+      </div>
+      <div class="frame-body" style="padding:0;">
+        <iframe width="100%" height="160" style="border-radius:12px"
+          src="https://www.youtube.com/embed/UEy-RvQBks8"
+          title="Trap Life - McQueffa" frameborder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowfullscreen loading="lazy"></iframe>
+      </div>
+    </div>
+  </aside>
+
+  <!-- RIGHT: Fans’ Weekly Favorite -->
+  <aside class="right-rail">
+    <div class="frame now-playing">
+      <div class="frame-head"><div class="frame-title">Fans’ Weekly Favorite</div></div>
+      <div class="np-meta">
+        <div class="np-title">Now Playing: <span style="color:var(--gold)">Hola</span></div>
+        <div class="np-sub">from <strong>Jonah Complex</strong></div>
+      </div>
+      <div class="frame-body">
+        <iframe width="100%" height="160" style="border-radius:12px"
+          src="https://www.youtube.com/embed/jTilCc_vs3M"
+          title="Hola - McQueffa" frameborder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowfullscreen loading="lazy"></iframe>
+      </div>
+    </div>
+  </aside>
+
+  <!-- CENTER content -->
+  <div class="container">
+    <header>
+      <img src="McQueffa Artwork.jpeg" alt="McQueffa Artwork">
+      <h1>McQueffa</h1>
+      <div style="color:var(--gold); margin-top:6px;">YARDMAN</div>
+    </header>
+
+    <!-- Welcome text -->
+    <div class="hero-slider" id="hero-slider">
+      <div class="hero-slide active">Welcome to the world of one of your favorite artists</div>
+      <div class="hero-slide">Feel the sound. Live the story. — McQueffa</div>
+      <div class="hero-slide">New vibes loading… stay tuned.</div>
+    </div>
+
+    <!-- Tabs + EPK button (modal) -->
+    <nav>
+      <button class="nav-btn active" data-tab="bio">Bio</button>
+      <button class="nav-btn" data-tab="catalogue">Catalogue</button>
+      <button class="nav-btn" data-tab="merch">Merch</button>
+      <button class="nav-btn" data-tab="q-dsps">Q (DSPs)</button>
+      <button type="button" class="epk-open" id="open-epk">EPK (German)</button>
+    </nav>
+
+    <!-- Sections -->
+    <div class="sections">
+      <div class="sections-inner">
+
+        <!-- Bio -->
+        <section id="bio" class="active">
+          <p>
+            McQueffa is a Nigerian artist fusing street lyricism with Afro-dancehall vibes. Based in Lagos, he’s known for energetic delivery and catchy hooks. His latest project, Jonah Complex (2025), features tracks like “Call,” “Hola,” and “Top Shotta.”
+          </p>
+          <p style="max-width:70ch;margin:8px auto 0;text-align:center;opacity:.95;">
+            <strong>Notable Features:</strong> FreeBoy Biz, Payper Corleone, Eniola Havoc, Gee Victor, Ab West, Big Tegs.
+          </p>
+        </section>
+
+        <!-- Catalogue -->
+        <section id="catalogue">
+          <div class="catalogue-list">
+            <div class="catalogue-album">
+              <a class="thumb-link" href="https://ditto.fm/jonah-complex-mcqueffa" target="_blank" rel="noopener">
+                <img class="album-art" src="jonah-complex-artwork.jpeg" alt="Jonah Complex cover">
+              </a>
+              <div class="album-title">Jonah Complex</div>
+              <div class="streaming-logos">
+                <a href="https://music.apple.com/search?term=mcqueffa%20jonah%20complex" target="_blank" rel="noopener">
+                  <img src="https://img.icons8.com/color/48/apple-music.png" alt="Apple Music">
+                </a>
+                <a href="https://www.youtube.com/results?search_query=mcqueffa+jonah+complex" target="_blank" rel="noopener">
+                  <img src="https://img.icons8.com/color/48/youtube-play.png" alt="YouTube">
+                </a>
+                <a href="https://soundcloud.com/search?q=mcqueffa%20jonah%20complex" target="_blank" rel="noopener">
+                  <img src="https://img.icons8.com/color/48/soundcloud.png" alt="SoundCloud">
+                </a>
+              </div>
+            </div>
+
+            <div class="catalogue-album">
+              <a class="thumb-link" href="https://ditto.fm/trap-life-mcqueffa" target="_blank" rel="noopener">
+                <img class="album-art" src="trap-life-1.jpeg" alt="Trap Life 1 cover">
+              </a>
+              <div class="album-title">Trap Life 1</div>
+              <div class="streaming-logos">
+                <a href="https://open.spotify.com/album/51BXlm8BMrKThtAkVX63eT" target="_blank" rel="noopener">
+                  <img src="https://img.icons8.com/color/48/spotify--v1.png" alt="Spotify">
+                </a>
+                <a href="https://music.apple.com/search?term=mcqueffa%20trap%20life" target="_blank" rel="noopener">
+                  <img src="https://img.icons8.com/color/48/apple-music.png" alt="Apple Music">
+                </a>
+                <a href="https://www.youtube.com/results?search_query=mcqueffa+trap+life" target="_blank" rel="noopener">
+                  <img src="https://img.icons8.com/color/48/youtube-play.png" alt="YouTube">
+                </a>
+              </div>
+            </div>
+
+            <div class="catalogue-album">
+              <a class="thumb-link" href="https://ditto.fm/trap-life-2" target="_blank" rel="noopener">
+                <img class="album-art" src="trap-life-2.jpeg" alt="Trap Life 2 cover">
+              </a>
+              <div class="album-title">Trap Life 2</div>
+              <div class="streaming-logos">
+                <a href="https://open.spotify.com/album/1H0PcyiaeSLgJAjhpehWER" target="_blank" rel="noopener">
+                  <img src="https://img.icons8.com/color/48/spotify--v1.png" alt="Spotify">
+                </a>
+                <a href="https://music.apple.com/search?term=mcqueffa%20trap%20life%202" target="_blank" rel="noopener">
+                  <img src="https://img.icons8.com/color/48/apple-music.png" alt="Apple Music">
+                </a>
+                <a href="https://www.youtube.com/results?search_query=mcqueffa+trap+life+2" target="_blank" rel="noopener">
+                  <img src="https://img.icons8.com/color/48/youtube-play.png" alt="YouTube">
+                </a>
+              </div>
+            </div>
+
+            <div class="catalogue-album">
+              <a class="thumb-link" href="https://ditto.fm/odoo-mcqueffa" target="_blank" rel="noopener">
+                <img class="album-art" src="MCQUEFFA ODOO.jpeg" alt="Odoo cover">
+              </a>
+              <div class="album-title">Odoo</div>
+              <div class="streaming-logos">
+                <a href="https://open.spotify.com/album/6272NyBvK5nTl1qL3UhFI6" target="_blank" rel="noopener">
+                  <img src="https://img.icons8.com/color/48/spotify--v1.png" alt="Spotify">
+                </a>
+                <a href="https://music.apple.com/search?term=mcqueffa%20odoo" target="_blank" rel="noopener">
+                  <img src="https://img.icons8.com/color/48/apple-music.png" alt="Apple Music">
+                </a>
+                <a href="https://www.youtube.com/results?search_query=mcqueffa+odoo" target="_blank" rel="noopener">
+                  <img src="https://img.icons8.com/color/48/youtube-play.png" alt="YouTube">
+                </a>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- Merch -->
+        <section id="merch">
+          <h2>Official Merch</h2>
+          <div class="merch-wrap">
+            <div>
+              <div class="hoodie black" data-color="black">
+                <img src="Black Hoodie Front.png" alt="Black Hoodie Front">
+              </div>
+              <div class="hoodie-label">Black — Front</div>
+            </div>
+            <div>
+              <div class="hoodie black" data-color="black">
+                <img src="Black Hoodie Back.png" alt="Black Hoodie Back">
+              </div>
+              <div class="hoodie-label">Black — Back</div>
+            </div>
+            <div>
+              <div class="hoodie white" data-color="white">
+                <img src="Hoodie front White.png" alt="White Hoodie Front">
+              </div>
+              <div class="hoodie-label">White — Front</div>
+            </div>
+            <div>
+              <div class="hoodie white" data-color="white">
+                <img src="Hoodie Back White.png" alt="White Hoodie Back">
+              </div>
+              <div class="hoodie-label">White — Back</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Q DSPs -->
+        <section id="q-dsps">
+          <h2>Q on all DSPs</h2>
+          <div class="dsp-grid">
+            <a href="https://open.spotify.com/artist/6stWMszZGlw0z8TTjgc78S" target="_blank" rel="noopener"><img class="album-art" src="https://img.icons8.com/color/48/spotify--v1.png" alt="Spotify"></a>
+            <a href="https://music.apple.com/search?term=mcqueffa" target="_blank" rel="noopener"><img class="album-art" src="https://img.icons8.com/color/48/apple-music.png" alt="Apple Music"></a>
+            <a href="https://www.youtube.com/@McQueffa" target="_blank" rel="noopener"><img class="album-art" src="https://img.icons8.com/color/48/youtube-play.png" alt="YouTube"></a>
+            <a href="https://soundcloud.com/search?q=mcqueffa" target="_blank" rel="noopener"><img class="album-art" src="https://img.icons8.com/color/48/soundcloud.png" alt="SoundCloud"></a>
+            <a href="https://www.deezer.com/search/mcqueffa" target="_blank" rel="noopener"><img class="album-art" src="https://img.icons8.com/color/48/deezer.png" alt="Deezer"></a>
+            <a href="https://listen.tidal.com/search?q=mcqueffa" target="_blank" rel="noopener"><img class="album-art" src="https://img.icons8.com/ios-filled/50/tidal.png" alt="Tidal"></a>
+            <a href="https://audiomack.com/search?q=mcqueffa" target="_blank" rel="noopener"><img class="album-art" src="audiomack.jpg" alt="Audiomack"></a>
+            <a href="https://www.boomplay.com/search/mcqueffa" target="_blank" rel="noopener"><img class="album-art" src="https://img.icons8.com/fluency/48/music.png" alt="Boomplay"></a>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer role="contentinfo" aria-label="Site footer">
+    <div style="max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;">
+      <div style="display:flex;align-items:center;gap:10px;justify-content:flex-start;">
+        <img src="paypal.png" alt="PayPal" style="width:26px;height:26px;border-radius:6px;object-fit:cover;">
+        <a href="https://paypal.me/FalodeOluwapelumi" target="_blank" rel="noopener">Donate (PayPal)</a>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;justify-content:center;">
+        <a href="https://instagram.com/mcqueffa" target="_blank" rel="noopener">Instagram</a>
+        <span style="opacity:.6;">|</span>
+        <a href="https://twitter.com/mcqueffa" target="_blank" rel="noopener">Twitter/X</a>
+        <span style="opacity:.6;">|</span>
+        <a href="https://soundcloud.com/search?q=mcqueffa" target="_blank" rel="noopener">SoundCloud</a>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;justify-content:flex-end;">
+        <a href="mailto:queffatrillah@gmail.com">Bookings: queffatrillah@gmail.com</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Merch Modal -->
+  <div class="modal" id="merch-modal" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="merchModalTitle">
+      <div class="modal-head">
+        <div class="modal-title" id="merchModalTitle">Merch</div>
+        <button class="modal-close" id="merch-modal-close" aria-label="Close merch gallery">Close</button>
+      </div>
+      <div class="modal-images" id="merch-modal-images"></div>
+    </div>
+  </div>
+
+  <!-- EPK (German) Modal -->
+  <div class="modal" id="epk-modal" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="epkTitle">
+      <div class="modal-head">
+        <div class="modal-title" id="epkTitle">EPK — German</div>
+        <button class="modal-close" id="epk-close" aria-label="Close EPK">Close</button>
+      </div>
+      <!-- Use your real PDF filename here -->
+      <iframe class="pdf-frame" src="EPK GERMAN.pdf#view=FitH"
+              onerror="this.src='EPK%20GERMAN.pdf#view=FitH'"></iframe>
+      <div class="pdf-fallback">
+        If the PDF doesn’t show, <a href="EPK%20GERMAN.pdf" target="_blank" rel="noopener">open it in a new tab</a>.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Tabs (keep your behavior)
+    document.querySelectorAll('.nav-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('section').forEach(s=>s.classList.remove('active'));
+        document.getElementById(btn.dataset.tab).classList.add('active');
+      });
+    });
+
+    // Slider
+    (function(){
+      const slides = document.querySelectorAll('#hero-slider .hero-slide');
+      if(!slides.length) return;
+      let i = 0;
+      setInterval(()=> {
+        slides[i].classList.remove('active');
+        i = (i + 1) % slides.length;
+        slides[i].classList.add('active');
+      }, 3500);
+    })();
+
+    // Merch modal
+    (function(){
+      const modal = document.getElementById('merch-modal');
+      const closeBtn = document.getElementById('merch-modal-close');
+      const imagesWrap = document.getElementById('merch-modal-images');
+
+      const sets = {
+        white: ["Hoodie front White.png", "Hoodie Back White.png"],
+        black: ["Black Hoodie Front.png", "Black Hoodie Back.png"]
+      };
+
+      document.querySelectorAll('#merch .hoodie').forEach(box=>{
+        box.addEventListener('click', ()=>{
+          const color = box.dataset.color || (box.classList.contains('white') ? 'white' : 'black');
+          const list = sets[color] || [];
+          imagesWrap.innerHTML = '';
+          list.forEach(src=>{
+            const img = document.createElement('img');
+            img.src = src;
+            img.alt = color + ' hoodie';
+            imagesWrap.appendChild(img);
+          });
+          document.getElementById('merchModalTitle').textContent =
+            (color.charAt(0).toUpperCase()+color.slice(1)) + ' Hoodie — Front & Back';
+          modal.classList.add('open');
+          modal.setAttribute('aria-hidden','false');
+        });
+      });
+
+      function closeModal(){
+        modal.classList.remove('open');
+        modal.setAttribute('aria-hidden','true');
+      }
+      closeBtn.addEventListener('click', closeModal);
+      modal.addEventListener('click', (e)=>{ if(e.target === modal) closeModal(); });
+      document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeModal(); });
+    })();
+
+    // EPK modal
+    (function(){
+      const epkBtn = document.getElementById('open-epk');
+      const epkModal = document.getElementById('epk-modal');
+      const epkClose = document.getElementById('epk-close');
+
+      epkBtn.addEventListener('click', ()=>{
+        epkModal.classList.add('open');
+        epkModal.setAttribute('aria-hidden','false');
+      });
+      function closeEpk(){
+        epkModal.classList.remove('open');
+        epkModal.setAttribute('aria-hidden','true');
+      }
+      epkClose.addEventListener('click', closeEpk);
+      epkModal.addEventListener('click', (e)=>{ if(e.target === epkModal) closeEpk(); });
+      document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeEpk(); });
+    })();
+  </script>
+</body>
+</html>
